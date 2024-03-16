@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import Collapsible from 'react-collapsible';
 import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
 import hand_landmarker_task from "./hand_landmarker.task";
 
@@ -16,7 +17,14 @@ const WebcamDisplay = () => {
 
     const [generateBtnText, setGenerateBtnText] = useState("Generate");
     const [prompt, setPrompt] = useState("bus");
-    
+    const [add_prompt, setAddPrompt] = useState("beautiful");
+    const [neg_prompt, setNegPrompt] = useState("awful");
+    const [num_images, setNumImages] = useState(1);
+    const [image_resolution, setImageResolution] = useState(512);
+    const [num_steps, setNumSteps] = useState(20);
+    const [guidance_scale, setGuidanceScale] = useState(10);
+    const [seed, setSeed] = useState(42);
+
     useEffect(() => {
         let handLandmarker;
         let animationFrameId;
@@ -172,7 +180,45 @@ const WebcamDisplay = () => {
 
     const callImageGenAPI = async(scrible) => {
         console.log("Image generation called")
+
+        
+        const requestData = {
+        image: scrible,
+        prompt:prompt,
+        additional_prompt: add_prompt,
+        negative_prompt: neg_prompt,
+        num_images: num_images,
+        image_resolution: image_resolution,
+        preprocess_resolution: 512,
+        num_steps: num_steps,
+        guidance_scale: guidance_scale,
+        seed: seed,
+        preprocessor_name: "HED"
+        }
         //TODO: Implement the API call to the image generation model
+
+        // Make a POST request to the API endpoint
+        fetch('https://ade3-104-154-232-153.ngrok-free.app/generate', {
+            method: 'POST', headers: {
+            'Content-Type': 'application/json'
+            }, body: JSON.stringify(requestData)
+        }).then(response => {
+            // Check if the response is successful
+            if (!response.ok) {
+            throw new Error('Network response was not ok');
+            }
+            // Parse the JSON response
+            return response.json();
+        })
+        .then(data => {
+            // Handle the response data
+            setImageUrl(data.image);
+            console.log('Response from API:', data);
+        })
+        .catch(error => {
+            // Handle errors
+            console.error('There was a problem with the fetch operation:', error);
+        });
         
     };
 
@@ -180,6 +226,7 @@ const WebcamDisplay = () => {
     <div className="App">
       <header className="App-header">   
         <h1>Doodle by hand to image</h1>
+        
         <div style={{ position: "relative" }}>
             <video className='video'
             ref={videoRef}
@@ -209,10 +256,32 @@ const WebcamDisplay = () => {
         </div>
         <div>
             <label htmlFor="prompt">Prompt:</label>
-            <input className="textbox" type="text" id="prompt" name="prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)}/><br/>
-            {/*TODO: Add more inputs here */}
-            </div>
+            <input className="textbox_prompt" type="text" id="prompt" name="prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)}/><br/>
+            <Collapsible trigger="click to change the hyperparameters" >
+                <div>
+                    <label htmlFor="seed">Seed:</label>
+                    <input className="textbox" type="text" id="seed" name="seed" value={seed} onChange={(e) => setSeed(e.target.value)}></input>
+                    <label htmlFor="num_steps">Number of steps:</label>
+                    <input className="textbox" type="text" id="num_steps" name="num_steps" value={num_steps} onChange={(e) => setNumSteps(e.target.value)}></input>
+                </div>
+                <div>
+                    <label htmlFor="image_resolution">Image Resolution:</label>
+                    <input className="textbox" type="text" id="image_resolution" name="image_resolution" value={image_resolution} onChange={(e) => setImageResolution(e.target.value)}></input>
+                    <label htmlFor="guidance_scale">Guidance Scale:</label>
+                    <input className="textbox" type="text" id="guidance_scale" name="guidance_scale" value={guidance_scale} onChange={(e) => setGuidanceScale(e.target.value)}></input>
+                </div>
+                <div>              
+                    <label htmlFor="add_prompt">Additional Prompt:</label>
+                    <input className="textbox" type="text" id="add_prompt" name="add_prompt" value={add_prompt} onChange={(e) => setAddPrompt(e.target.value)}></input>
+                    <label htmlFor="neg_prompt">Negativ Prompt:</label>
+                    <input className="textbox" type="text" id="neg_prompt" name="neg_prompt" value={neg_prompt} onChange={(e) => setNegPrompt(e.target.value)}></input>  
+                </div>     
+               
+                {/*TODO: Add more inputs here */}
+            </Collapsible>
+        </div>
         {/*<p className='small'>Recorded Points: {JSON.stringify(recordedPoints)}</p>*/}
+        
         {imageUrl && <img className='video' src={imageUrl} alt="Scribble Image" style={{backgroundColor: 'white'}}/>} {/* Display the image if imageUrl is not null */}
       </header>
     </div>
